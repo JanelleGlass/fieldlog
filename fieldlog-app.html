@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>fieldlog</title>
+
+<!-- iOS home-screen support -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="fieldlog">
+<meta name="theme-color" content="#EDEFE4">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" href="icon-180.png">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#EDEFE4; --card:#F8F9F2; --ink:#232921; --ink-soft:#5B6355;
+    --rule:#C9CFC0; --iron:#A6512F; --fiber:#4F7358; --protein:#3A4F73;
+    --calorie:#8A7B3D; --gold:#C9A227; --radius:14px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--paper);
+    background-image:repeating-linear-gradient(0deg, rgba(90,100,80,0.05) 0px, rgba(90,100,80,0.05) 1px, transparent 1px, transparent 28px);
+    color:var(--ink); font-family:'IBM Plex Sans',sans-serif; min-height:100vh;
+    padding:calc(env(safe-area-inset-top) + 18px) 14px 60px;
+  }
+  .wrap{max-width:480px;margin:0 auto;}
+  header{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:4px;}
+  .brand{font-family:'Fraunces',serif;font-weight:700;font-size:22px;letter-spacing:-0.01em;}
+  .brand span{color:var(--fiber);}
+  .gear{background:none;border:none;font-size:18px;cursor:pointer;color:var(--ink-soft);padding:4px;}
+  .subtitle{font-size:11px;color:var(--ink-soft);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:16px;}
+
+  .syncline{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--ink-soft);text-align:center;margin-bottom:12px;min-height:13px;}
+  .syncline.err{color:var(--iron);}
+
+  .datenav{display:flex;align-items:center;justify-content:space-between;background:var(--card);border:1px solid var(--rule);border-radius:var(--radius);padding:10px 14px;margin-bottom:16px;}
+  .datenav button{background:none;border:none;font-family:'IBM Plex Mono',monospace;font-size:18px;color:var(--ink);cursor:pointer;padding:4px 10px;}
+  .datenav button:hover{color:var(--fiber);}
+  .dateLabel{font-family:'Fraunces',serif;font-weight:600;font-size:15px;text-align:center;flex:1;}
+  .dateSub{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--ink-soft);text-align:center;display:block;margin-top:2px;}
+
+  .rings{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px;}
+  .ringCard{background:var(--card);border:1px solid var(--rule);border-radius:var(--radius);padding:10px 4px 12px;text-align:center;}
+  .ringCard svg{display:block;margin:0 auto;}
+  .ringVal{font-family:'IBM Plex Mono',monospace;font-weight:600;font-size:13px;margin-top:4px;}
+  .ringTarget{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--ink-soft);}
+  .ringLabel{font-size:9px;text-transform:uppercase;letter-spacing:0.06em;color:var(--ink-soft);margin-top:2px;}
+
+  .plantsBar{background:var(--card);border:1px solid var(--rule);border-radius:var(--radius);padding:10px 14px;margin-bottom:18px;display:flex;align-items:center;justify-content:space-between;}
+  .plantsBar .pLabel{font-size:11px;text-transform:uppercase;letter-spacing:0.06em;color:var(--ink-soft);}
+  .plantsBar .pVal{font-family:'IBM Plex Mono',monospace;font-weight:600;font-size:16px;color:var(--gold);}
+
+  .sectionTitle{font-family:'Fraunces',serif;font-weight:600;font-size:15px;margin:22px 0 8px;display:flex;align-items:center;gap:8px;}
+  .sectionTitle::after{content:"";flex:1;height:1px;background:var(--rule);}
+
+  form.addForm{background:var(--card);border:1px solid var(--rule);border-radius:var(--radius);padding:14px;}
+  .row{display:flex;gap:8px;margin-bottom:8px;}
+  .row.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;}
+  input[type=text],input[type=number],input[type=url]{
+    font-family:'IBM Plex Sans',sans-serif;background:#fff;border:1px solid var(--rule);
+    border-radius:8px;padding:8px 9px;font-size:13px;color:var(--ink);width:100%;
+  }
+  input:focus{outline:2px solid var(--fiber);outline-offset:1px;}
+  .miniLabel{font-size:9px;text-transform:uppercase;letter-spacing:0.05em;color:var(--ink-soft);margin-bottom:2px;display:block;}
+  .plantCheck{display:flex;align-items:center;gap:6px;margin:10px 0 12px;font-size:12px;color:var(--ink-soft);}
+  .plantCheck input{width:15px;height:15px;accent-color:var(--fiber);}
+  button.addBtn{width:100%;background:var(--ink);color:var(--paper);border:none;border-radius:8px;padding:11px;font-family:'IBM Plex Mono',monospace;font-weight:600;font-size:13px;letter-spacing:0.03em;cursor:pointer;}
+  button.addBtn:hover{background:var(--fiber);}
+  button.addBtn:disabled{opacity:0.5;cursor:default;}
+
+  .quickRow{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;}
+  .quickChip{font-family:'IBM Plex Sans',sans-serif;font-size:11px;background:#fff;border:1px solid var(--rule);border-radius:20px;padding:5px 10px;cursor:pointer;color:var(--ink);}
+  .quickChip:hover{border-color:var(--fiber);color:var(--fiber);}
+
+  .entries{margin-top:14px;}
+  .entry{background:var(--card);border:1px solid var(--rule);border-radius:10px;padding:10px 12px;margin-bottom:8px;display:flex;align-items:center;gap:10px;}
+  .entry .plantDot{width:7px;height:7px;border-radius:50%;background:var(--gold);flex-shrink:0;}
+  .entry .plantDot.hidden{background:transparent;}
+  .entry .info{flex:1;min-width:0;}
+  .entry .name{font-size:13px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .entry .macros{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--ink-soft);margin-top:2px;}
+  .entry .del{background:none;border:none;color:var(--iron);font-size:16px;cursor:pointer;padding:2px 6px;line-height:1;}
+  .empty{text-align:center;padding:26px 10px;color:var(--ink-soft);font-size:12px;}
+  .empty .big{font-family:'Fraunces',serif;font-size:14px;color:var(--ink);margin-bottom:4px;}
+
+  /* Setup panel */
+  .overlay{position:fixed;inset:0;background:rgba(35,41,33,0.55);display:none;align-items:center;justify-content:center;padding:20px;z-index:50;}
+  .overlay.show{display:flex;}
+  .panel{background:var(--card);border:1px solid var(--rule);border-radius:var(--radius);padding:20px;max-width:440px;width:100%;}
+  .panel h2{font-family:'Fraunces',serif;font-size:18px;margin:0 0 6px;}
+  .panel p{font-size:12px;color:var(--ink-soft);line-height:1.5;margin:0 0 12px;}
+  .panel .btnRow{display:flex;gap:8px;margin-top:14px;}
+  .panel button{flex:1;border:none;border-radius:8px;padding:10px;font-family:'IBM Plex Mono',monospace;font-weight:600;font-size:12px;cursor:pointer;}
+  .panel .save{background:var(--ink);color:var(--paper);}
+  .panel .cancel{background:#fff;border:1px solid var(--rule);color:var(--ink);}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="brand">field<span>log</span></div>
+    <button class="gear" id="gearBtn" aria-label="Settings">&#9881;</button>
+  </header>
+  <div class="subtitle">Daily nutrition — calories · protein · fiber · iron</div>
+  <div class="syncline" id="syncline"></div>
+
+  <div class="datenav">
+    <button id="prevDay" aria-label="Previous day">&#8592;</button>
+    <div>
+      <div class="dateLabel" id="dateLabel">—</div>
+      <span class="dateSub" id="dateSub"></span>
+    </div>
+    <button id="nextDay" aria-label="Next day">&#8594;</button>
+  </div>
+
+  <div class="rings" id="rings"></div>
+
+  <div class="plantsBar">
+    <span class="pLabel">Plant-tagged items, last 7 days</span>
+    <span class="pVal" id="plantsWeek">—</span>
+  </div>
+
+  <div class="sectionTitle">Log an item</div>
+  <form class="addForm" id="addForm">
+    <div class="row"><input type="text" id="fName" placeholder="e.g. lentil grain bowl" required></div>
+    <div class="row grid4">
+      <div><span class="miniLabel">Cal</span><input type="number" id="fCal" min="0" step="1" required></div>
+      <div><span class="miniLabel">Protein g</span><input type="number" id="fProtein" min="0" step="0.1" required></div>
+      <div><span class="miniLabel">Fiber g</span><input type="number" id="fFiber" min="0" step="0.1"></div>
+      <div><span class="miniLabel">Iron mg</span><input type="number" id="fIron" min="0" step="0.1"></div>
+    </div>
+    <label class="plantCheck"><input type="checkbox" id="fPlant"> Counts toward 30 plants this week</label>
+    <button type="submit" class="addBtn" id="addBtn">+ Add to log</button>
+    <div class="quickRow" id="quickRow"></div>
+  </form>
+
+  <div class="sectionTitle">Entries this day</div>
+  <div class="entries" id="entries"></div>
+</div>
+
+<!-- Setup overlay -->
+<div class="overlay" id="overlay">
+  <div class="panel">
+    <h2>Connect your Google Sheet</h2>
+    <p>Paste the Web app URL from your Apps Script deployment. This links the app to your sheet so entries sync across your phone and computer. Stored only on this device.</p>
+    <input type="url" id="urlInput" placeholder="https://script.google.com/macros/s/…/exec">
+    <div class="btnRow">
+      <button class="cancel" id="cancelSetup">Cancel</button>
+      <button class="save" id="saveSetup">Save & sync</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const TARGETS = { calMin:1700, calMax:1950, proteinMin:130, proteinMax:145, fiber:30, iron:18 };
+
+// Frequent items for one-tap logging. Edit freely.
+const QUICK_ITEMS = [
+  {name:'Protein coffee (1 scoop + milk)', cal:170, protein:24, fiber:0, iron:0.2, plant:false},
+  {name:'Edamame, 1 cup', cal:190, protein:17, fiber:8, iron:3.5, plant:true},
+  {name:'Soft boiled egg', cal:70, protein:6, fiber:0, iron:0.6, plant:false},
+  {name:'Greek yogurt, 1/2 cup', cal:100, protein:10, fiber:0, iron:0.1, plant:false}
+];
+
+let currentDate = new Date(); currentDate.setHours(0,0,0,0);
+let ALL = [];                 // all entries from the sheet
+let SCRIPT_URL = localStorage.getItem('fieldlog_url') || '';
+
+function dateKey(d){
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+function isToday(d){ return dateKey(d)===dateKey(new Date()); }
+function formatDateLabel(d){ return d.toLocaleDateString(undefined,{weekday:'long',month:'short',day:'numeric'}); }
+function escapeHtml(s){ const d=document.createElement('div'); d.textContent=s; return d.innerHTML; }
+
+function setSync(msg, isErr){
+  const el=document.getElementById('syncline');
+  el.textContent=msg||''; el.classList.toggle('err', !!isErr);
+}
+
+/* ---- Sheet I/O via Apps Script ---- */
+async function fetchAll(){
+  if(!SCRIPT_URL){ openSetup(); return; }
+  setSync('syncing…');
+  try{
+    const res = await fetch(SCRIPT_URL, {method:'GET'});
+    const data = await res.json();
+    if(data.ok){
+      ALL = data.entries || [];
+      localStorage.setItem('fieldlog_cache', JSON.stringify(ALL));
+      setSync('synced · '+ALL.length+' items');
+    } else {
+      throw new Error(data.error||'server error');
+    }
+  }catch(e){
+    const cache = localStorage.getItem('fieldlog_cache');
+    ALL = cache ? JSON.parse(cache) : [];
+    setSync('offline — showing last synced copy', true);
+  }
+  render();
+}
+
+async function pushEntry(entry){
+  // optimistic
+  ALL.push(entry);
+  localStorage.setItem('fieldlog_cache', JSON.stringify(ALL));
+  render();
+  try{
+    await fetch(SCRIPT_URL, {method:'POST', body:JSON.stringify(entry)});
+    setSync('synced · '+ALL.length+' items');
+  }catch(e){
+    queueOutbox(entry);
+    setSync('saved locally — will sync when online', true);
+  }
+}
+
+async function deleteEntry(id){
+  ALL = ALL.filter(e=>String(e.id)!==String(id));
+  localStorage.setItem('fieldlog_cache', JSON.stringify(ALL));
+  render();
+  try{
+    await fetch(SCRIPT_URL, {method:'POST', body:JSON.stringify({action:'delete', id:id})});
+    setSync('synced · '+ALL.length+' items');
+  }catch(e){
+    setSync('delete will sync when online', true);
+  }
+}
+
+function queueOutbox(entry){
+  const ob = JSON.parse(localStorage.getItem('fieldlog_outbox')||'[]');
+  ob.push(entry); localStorage.setItem('fieldlog_outbox', JSON.stringify(ob));
+}
+async function flushOutbox(){
+  if(!SCRIPT_URL) return;
+  let ob = JSON.parse(localStorage.getItem('fieldlog_outbox')||'[]');
+  if(!ob.length) return;
+  const remaining=[];
+  for(const entry of ob){
+    try{ await fetch(SCRIPT_URL,{method:'POST',body:JSON.stringify(entry)}); }
+    catch(e){ remaining.push(entry); }
+  }
+  localStorage.setItem('fieldlog_outbox', JSON.stringify(remaining));
+}
+
+/* ---- rendering ---- */
+function entriesForDate(d){ const k=dateKey(d); return ALL.filter(e=>e.date===k); }
+function computeTotals(entries){
+  return entries.reduce((a,e)=>{a.cal+=+e.cal||0;a.protein+=+e.protein||0;a.fiber+=+e.fiber||0;a.iron+=+e.iron||0;return a;},{cal:0,protein:0,fiber:0,iron:0});
+}
+function ringSVG(pct,color,size=58,stroke=6){
+  const r=(size-stroke)/2, c=2*Math.PI*r, dash=Math.min(Math.max(pct,0),1)*c;
+  return `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">
+    <circle cx="${size/2}" cy="${size/2}" r="${r}" fill="none" stroke="var(--rule)" stroke-width="${stroke}"/>
+    <circle cx="${size/2}" cy="${size/2}" r="${r}" fill="none" stroke="${color}" stroke-width="${stroke}"
+      stroke-linecap="round" stroke-dasharray="${dash} ${c}" transform="rotate(-90 ${size/2} ${size/2})"/>
+  </svg>`;
+}
+function renderRings(t){
+  const calColor = t.cal<TARGETS.calMin?'var(--protein)':(t.cal>TARGETS.calMax?'var(--iron)':'var(--fiber)');
+  const proteinColor = t.protein<TARGETS.proteinMin?'var(--calorie)':'var(--fiber)';
+  document.getElementById('rings').innerHTML = `
+    <div class="ringCard">${ringSVG(t.cal/TARGETS.calMax,calColor)}<div class="ringVal">${Math.round(t.cal)}</div><div class="ringTarget">${TARGETS.calMin}-${TARGETS.calMax}</div><div class="ringLabel">cal</div></div>
+    <div class="ringCard">${ringSVG(t.protein/TARGETS.proteinMax,proteinColor)}<div class="ringVal">${Math.round(t.protein)}g</div><div class="ringTarget">${TARGETS.proteinMin}-${TARGETS.proteinMax}</div><div class="ringLabel">protein</div></div>
+    <div class="ringCard">${ringSVG(t.fiber/TARGETS.fiber,'var(--fiber)')}<div class="ringVal">${t.fiber.toFixed(1)}g</div><div class="ringTarget">/ ${TARGETS.fiber}g</div><div class="ringLabel">fiber</div></div>
+    <div class="ringCard">${ringSVG(t.iron/TARGETS.iron,'var(--iron)')}<div class="ringVal">${t.iron.toFixed(1)}mg</div><div class="ringTarget">/ ${TARGETS.iron}mg</div><div class="ringLabel">iron</div></div>`;
+}
+function renderEntries(entries){
+  const el=document.getElementById('entries');
+  if(!entries.length){ el.innerHTML=`<div class="empty"><div class="big">Nothing logged yet</div>Add your first item above.</div>`; return; }
+  el.innerHTML = entries.map(e=>`
+    <div class="entry">
+      <div class="plantDot ${e.plant?'':'hidden'}"></div>
+      <div class="info"><div class="name">${escapeHtml(e.name)}</div>
+      <div class="macros">${Math.round(e.cal)} cal · ${(+e.protein).toFixed(1)}g P · ${(+e.fiber||0).toFixed(1)}g fiber · ${(+e.iron||0).toFixed(1)}mg Fe</div></div>
+      <button class="del" data-id="${e.id}" aria-label="Delete">&times;</button>
+    </div>`).join('');
+  el.querySelectorAll('.del').forEach(b=>b.addEventListener('click',()=>deleteEntry(b.getAttribute('data-id'))));
+}
+function weeklyPlants(){
+  let c=0;
+  for(let i=0;i<7;i++){ const d=new Date(currentDate); d.setDate(d.getDate()-i); c+=entriesForDate(d).filter(e=>e.plant).length; }
+  return c;
+}
+function renderQuick(){
+  document.getElementById('quickRow').innerHTML = QUICK_ITEMS.map((q,i)=>`<button type="button" class="quickChip" data-i="${i}">+ ${escapeHtml(q.name.split('(')[0].trim())}</button>`).join('');
+  document.querySelectorAll('.quickChip').forEach(b=>b.addEventListener('click',()=>{
+    const q=QUICK_ITEMS[+b.getAttribute('data-i')];
+    pushEntry(Object.assign({id:Date.now()+'-'+Math.random().toString(36).slice(2,7), date:dateKey(currentDate)}, q));
+  }));
+}
+function render(){
+  document.getElementById('dateLabel').textContent=formatDateLabel(currentDate);
+  document.getElementById('dateSub').textContent=isToday(currentDate)?'today':dateKey(currentDate);
+  const entries=entriesForDate(currentDate);
+  renderRings(computeTotals(entries));
+  renderEntries(entries);
+  document.getElementById('plantsWeek').textContent=weeklyPlants()+' / 30';
+}
+
+/* ---- setup overlay ---- */
+function openSetup(){ document.getElementById('urlInput').value=SCRIPT_URL; document.getElementById('overlay').classList.add('show'); }
+function closeSetup(){ document.getElementById('overlay').classList.remove('show'); }
+document.getElementById('gearBtn').addEventListener('click', openSetup);
+document.getElementById('cancelSetup').addEventListener('click', closeSetup);
+document.getElementById('saveSetup').addEventListener('click', ()=>{
+  const v=document.getElementById('urlInput').value.trim();
+  if(v){ SCRIPT_URL=v; localStorage.setItem('fieldlog_url', v); closeSetup(); flushOutbox().then(fetchAll); }
+});
+
+/* ---- nav + form ---- */
+document.getElementById('prevDay').addEventListener('click',()=>{currentDate.setDate(currentDate.getDate()-1);render();});
+document.getElementById('nextDay').addEventListener('click',()=>{currentDate.setDate(currentDate.getDate()+1);render();});
+document.getElementById('addForm').addEventListener('submit',(ev)=>{
+  ev.preventDefault();
+  const entry={
+    id:Date.now()+'-'+Math.random().toString(36).slice(2,7),
+    date:dateKey(currentDate),
+    name:document.getElementById('fName').value.trim(),
+    cal:parseFloat(document.getElementById('fCal').value)||0,
+    protein:parseFloat(document.getElementById('fProtein').value)||0,
+    fiber:parseFloat(document.getElementById('fFiber').value)||0,
+    iron:parseFloat(document.getElementById('fIron').value)||0,
+    plant:document.getElementById('fPlant').checked
+  };
+  if(!entry.name) return;
+  pushEntry(entry);
+  ev.target.reset();
+  document.getElementById('fName').focus();
+});
+
+/* ---- boot ---- */
+renderQuick();
+render();
+if(SCRIPT_URL){ flushOutbox().then(fetchAll); } else { openSetup(); }
+window.addEventListener('online', ()=>flushOutbox().then(fetchAll));
+</script>
+</body>
+</html>
