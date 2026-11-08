@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>fieldlog</title>
- 
+
 <!-- iOS home-screen support -->
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -92,6 +92,16 @@
   .quickChip{font-family:'IBM Plex Sans',sans-serif;font-size:11px;background:#fff;border:1px solid var(--rule);border-radius:20px;padding:5px 10px;cursor:pointer;color:var(--ink);}
   .quickChip:hover{border-color:var(--fiber);color:var(--fiber);}
 
+  .jsonToggle{background:none;border:none;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink-soft);cursor:pointer;padding:8px 2px 0;text-decoration:underline;text-underline-offset:3px;}
+  .jsonToggle:hover{color:var(--fiber);}
+  .jsonBox{display:none;background:var(--card);border:1px solid var(--rule);border-radius:var(--radius);padding:14px;margin-top:8px;}
+  .jsonBox.show{display:block;}
+  .jsonBox textarea{width:100%;min-height:110px;font-family:'IBM Plex Mono',monospace;font-size:11px;line-height:1.5;background:#fff;border:1px solid var(--rule);border-radius:8px;padding:9px;color:var(--ink);resize:vertical;}
+  .jsonBox textarea:focus{outline:2px solid var(--fiber);outline-offset:1px;}
+  .jsonMsg{font-family:'IBM Plex Mono',monospace;font-size:10px;line-height:1.5;margin:8px 0;min-height:14px;color:var(--ink-soft);}
+  .jsonMsg.err{color:var(--iron);}
+  .jsonMsg.ok{color:var(--fiber);}
+
   .entries{margin-top:14px;}
   .entry{background:var(--card);border:1px solid var(--rule);border-radius:10px;padding:10px 12px;margin-bottom:8px;display:flex;align-items:center;gap:10px;}
   .entry .plantDot{width:7px;height:7px;border-radius:50%;background:var(--gold);flex-shrink:0;}
@@ -155,6 +165,14 @@
     <button type="submit" class="addBtn" id="addBtn">+ Add to log</button>
     <div class="quickRow" id="quickRow"></div>
   </form>
+
+  <button type="button" class="jsonToggle" id="jsonToggle">⌁ paste JSON instead</button>
+  <div class="jsonBox" id="jsonBox">
+    <span class="miniLabel">Paste one entry, or an array of entries</span>
+    <textarea id="jsonInput" placeholder='{"name":"Two tomato sandwiches","cal":530,"protein":11.5,"fiber":5,"iron":2.9,"plant":true}'></textarea>
+    <div class="jsonMsg" id="jsonMsg"></div>
+    <button type="button" class="addBtn" id="jsonImport">Import to log</button>
+  </div>
 
   <div class="sectionTitle">Entries this day</div>
   <div class="entries" id="entries"></div>
@@ -306,20 +324,6 @@ function renderRings(t){
     <div class="ringCard">${ringSVG(t.fiber/TARGETS.fiber,'var(--fiber)')}<div class="ringVal">${t.fiber.toFixed(1)}g</div><div class="ringTarget">/ ${TARGETS.fiber}g</div><div class="ringLabel">fiber</div></div>
     <div class="ringCard">${ringSVG(t.iron/TARGETS.iron,'var(--iron)')}<div class="ringVal">${t.iron.toFixed(1)}mg</div><div class="ringTarget">/ ${TARGETS.iron}mg</div><div class="ringLabel">iron</div></div>`;
 }
-
-// Soft low-intake flag.
-const LOW_FLOOR = 1600;
-function isFutureDate(d){ return dateKey(d) > dateKey(new Date()); }
-function renderLowFlag(total){
-  const el=document.getElementById('lowFlag');
-  if(total.cal>0 && total.cal<LOW_FLOOR && !isFutureDate(currentDate)){
-    el.classList.add('show');
-    el.innerHTML = `Logged so far: <strong>${Math.round(total.cal)} cal</strong>. If the day's done, that's under your ~${LOW_FLOOR} soft floor — fine occasionally, but sustained low days can disrupt cycles and recovery. If you're still eating, ignore this.`;
-  } else {
-    el.classList.remove('show');
-  }
-}
-
 function renderEntries(entries){
   const el=document.getElementById('entries');
   if(!entries.length){ el.innerHTML=`<div class="empty"><div class="big">Nothing logged yet</div>Add your first item above.</div>`; return; }
@@ -344,9 +348,23 @@ function renderQuick(){
     pushEntry(Object.assign({id:Date.now()+'-'+Math.random().toString(36).slice(2,7), date:dateKey(currentDate)}, q));
   }));
 }
+// Soft low-intake flag. Only fires once the day looks "done" enough to judge
+// (some calories logged) and total is under the floor.
+const LOW_FLOOR = 1600;
+function renderLowFlag(total){
+  const el=document.getElementById('lowFlag');
+  if(total.cal>0 && total.cal<LOW_FLOOR && !isFutureDate(currentDate)){
+    el.classList.add('show');
+    el.innerHTML = `Logged so far: <strong>${Math.round(total.cal)} cal</strong>. If the day's done, that's under your ~${LOW_FLOOR} soft floor — fine occasionally, but sustained low days can disrupt cycles and recovery. If you're still eating, ignore this.`;
+  } else {
+    el.classList.remove('show');
+  }
+}
+function isFutureDate(d){ return dateKey(d) > dateKey(new Date()); }
 
 /* ---- body composition (waist-to-height), synced to the Sheet ---- */
 function getHeight(){
+  // prefer most recent logged height, else saved default, else 71 (5'11")
   const sorted = BODY.slice().sort((a,b)=>a.date<b.date?1:-1);
   if(sorted[0] && sorted[0].height>0) return sorted[0].height;
   return parseFloat(localStorage.getItem('fieldlog_height_in')) || 71;
@@ -354,7 +372,7 @@ function getHeight(){
 function renderBody(){
   const h=getHeight();
   document.getElementById('fHeight').value = h;
-  const log=BODY.slice().sort((a,b)=>a.date<b.date?1:-1);
+  const log=BODY.slice().sort((a,b)=>a.date<b.date?1:-1); // newest first
   const latest=log[0];
   const rv=document.getElementById('ratioVal');
   const note=document.getElementById('bodyNote');
@@ -409,6 +427,63 @@ function render(){
   document.getElementById('plantsWeek').textContent=weeklyPlants()+' / 30';
   renderBody();
 }
+
+/* ---- JSON paste import ---- */
+function setJsonMsg(text, cls){
+  const el=document.getElementById('jsonMsg');
+  el.textContent=text||''; el.className='jsonMsg'+(cls?' '+cls:'');
+}
+// Normalizes one pasted object into a valid entry, or returns an error string.
+function normalizeEntry(raw, idx){
+  const label = idx==null ? 'Entry' : 'Entry '+(idx+1);
+  if(typeof raw!=='object' || raw===null || Array.isArray(raw)) return {error:label+': not an object'};
+  const name = (raw.name!=null ? String(raw.name) : '').trim();
+  if(!name) return {error:label+': missing "name"'};
+  const num = v => { const n=parseFloat(v); return isFinite(n) && n>=0 ? n : 0; };
+  if(raw.cal==null && raw.calories==null) return {error:label+' ("'+name+'"): missing "cal"'};
+  return {entry:{
+    id: raw.id ? String(raw.id) : (Date.now()+'-'+Math.random().toString(36).slice(2,7)),
+    date: /^\d{4}-\d{2}-\d{2}$/.test(raw.date||'') ? raw.date : dateKey(currentDate),
+    name: name,
+    cal: num(raw.cal!=null ? raw.cal : raw.calories),
+    protein: num(raw.protein),
+    fiber: num(raw.fiber),
+    iron: num(raw.iron),
+    plant: raw.plant===true || String(raw.plant).toLowerCase()==='true'
+  }};
+}
+document.getElementById('jsonToggle').addEventListener('click', ()=>{
+  const box=document.getElementById('jsonBox');
+  box.classList.toggle('show');
+  if(box.classList.contains('show')) document.getElementById('jsonInput').focus();
+});
+document.getElementById('jsonImport').addEventListener('click', async ()=>{
+  const text=document.getElementById('jsonInput').value.trim();
+  if(!text){ setJsonMsg('Nothing to import.','err'); return; }
+  let data;
+  try{
+    // tolerate markdown code fences
+    data = JSON.parse(text.replace(/^```(?:json)?/i,'').replace(/```$/,'').trim());
+  }catch(e){
+    setJsonMsg('Not valid JSON — check for a missing comma, quote, or bracket.','err');
+    return;
+  }
+  const list = Array.isArray(data) ? data : [data];
+  if(!list.length){ setJsonMsg('No entries found.','err'); return; }
+  const good=[], bad=[];
+  list.forEach((raw,i)=>{
+    const r = normalizeEntry(raw, Array.isArray(data)?i:null);
+    if(r.error) bad.push(r.error); else good.push(r.entry);
+  });
+  if(!good.length){ setJsonMsg(bad.join(' · '),'err'); return; }
+  for(const entry of good){ await pushEntry(entry); }
+  const dates=[...new Set(good.map(e=>e.date))];
+  let msg='Imported '+good.length+' item'+(good.length>1?'s':'');
+  if(dates.length===1 && dates[0]!==dateKey(currentDate)) msg+=' to '+dates[0];
+  if(bad.length) msg+=' · skipped '+bad.length+': '+bad.join(' · ');
+  setJsonMsg(msg, bad.length?'err':'ok');
+  if(!bad.length) document.getElementById('jsonInput').value='';
+});
 
 /* ---- setup overlay ---- */
 function openSetup(){ document.getElementById('urlInput').value=SCRIPT_URL; document.getElementById('overlay').classList.add('show'); }
